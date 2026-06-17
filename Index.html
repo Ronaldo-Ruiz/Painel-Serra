@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>CDM Cutting Control</title>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;font-family:Arial,Helvetica,sans-serif;background:#101827;color:#fff}
+body{overflow:hidden}
+.app{height:100vh;display:flex;flex-direction:column;padding:14px;gap:12px}
+.hidden{display:none!important}
+.header{background:linear-gradient(135deg,#1f2937 0%,#111827 100%);border:2px solid #374151;border-radius:20px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex:0 0 auto}
+.title{font-size:34px;font-weight:900;letter-spacing:1px;line-height:1}
+.subtitle{font-size:16px;opacity:.82;margin-top:5px}
+.clock{font-size:22px;font-weight:900;text-align:right;white-space:nowrap}
+.mode-buttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:8px}
+.btn{border:0;border-radius:14px;padding:12px 16px;font-size:18px;font-weight:900;cursor:pointer}
+.btn-dark{background:#374151;color:#fff}.btn-blue{background:#2563eb;color:#fff}
+.orders-screen,.list-screen,.po-screen,.closed-screen,.closed-detail-screen{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:12px}
+.section-title{font-size:30px;font-weight:900;color:#e5e7eb;flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.orders-grid{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;padding-right:4px}
+.order-card{background:#f8fafc;color:#111827;border-radius:22px;padding:20px;border:4px solid #d1d5db;box-shadow:0 10px 22px rgba(0,0,0,.25);cursor:pointer}
+.order-card:hover{border-color:#60a5fa}
+.order-number{font-size:42px;font-weight:900;line-height:1;color:#1d4ed8}
+.order-po{font-size:22px;font-weight:800;margin-top:8px;color:#374151}
+.order-meta{font-size:22px;font-weight:900;margin-top:14px;color:#111827}
+.order-small{font-size:16px;margin-top:8px;color:#6b7280}
+.filters{background:#f8fafc;color:#111827;border-radius:18px;padding:12px;display:grid;grid-template-columns:1.2fr .8fr .8fr .9fr .9fr auto;gap:10px;align-items:end;flex:0 0 auto}
+.filters.po-filters{grid-template-columns:.8fr .8fr .9fr .9fr .9fr auto}
+.filters.closed-filters{grid-template-columns:1fr 1fr 1fr auto}
+.field label{display:block;font-size:12px;font-weight:900;color:#475569;margin-bottom:4px;text-transform:uppercase}
+.field input,.field select{width:100%;height:44px;border:2px solid #cbd5e1;border-radius:12px;padding:6px 10px;font-size:18px;font-weight:800;background:#fff;color:#111827}
+.summary{font-size:20px;font-weight:900;color:#e5e7eb;display:flex;justify-content:space-between;align-items:center;gap:10px;flex:0 0 auto}
+.po-top{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f8fafc;color:#111827;border-radius:18px;padding:12px 16px}
+.selected-order{font-size:36px;font-weight:900;color:#1d4ed8;line-height:1}
+.selected-info{font-size:18px;font-weight:800;color:#374151;margin-top:5px}
+.list{flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:9px;padding-right:4px}
+.cut-row{display:grid;grid-template-columns:.72fr 1.05fr .9fr .65fr 1.05fr .55fr .8fr auto;gap:10px;align-items:center;border-radius:16px;padding:11px 12px;min-height:82px;border:4px solid transparent}
+.cut-row.black{background:#000;color:#fff;border-color:#374151}
+.cut-row.grey{background:#d1d5db;color:#000;border-color:#9ca3af}
+.cut-item{font-size:28px;font-weight:900;line-height:1;color:#facc15}
+.cut-row.grey .cut-item{color:#92400e}
+.cut-order{font-size:23px;font-weight:900;line-height:1.05}
+.cut-small{font-size:15px;opacity:.75}
+.cut-material{font-size:25px;font-weight:900;text-transform:uppercase;line-height:1.05}
+.cut-thickness{font-size:38px;font-weight:900;line-height:1;color:#ef4444;white-space:nowrap}
+.cut-row.grey .cut-thickness{color:#991b1b}
+.cut-measure{font-size:38px;font-weight:900;line-height:1;white-space:nowrap}
+.cut-qty{font-size:32px;font-weight:900;color:#22c55e;line-height:1;white-space:nowrap}
+.cut-row.grey .cut-qty{color:#166534}
+.cut-date{font-size:20px;font-weight:900;line-height:1.1}
+.cut-buttons{display:flex;gap:7px;justify-content:flex-end;align-items:center;flex-wrap:nowrap}
+.cut-ok,.cut-label{font-size:19px;font-weight:900;padding:13px 15px;border:0;border-radius:14px;color:#fff;cursor:pointer;white-space:nowrap}
+.cut-ok{background:#16a34a}.cut-label{background:#2563eb}
+.status-done{background:#14532d;color:#fff;border-radius:12px;padding:10px;text-align:center;font-weight:900}
+.empty{flex:1;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:900;color:#4ade80;text-align:center}
+.error{position:fixed;left:16px;right:16px;bottom:16px;background:#7f1d1d;color:#fff;padding:14px 18px;border-radius:14px;font-size:20px;font-weight:800;display:none}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="title">CORTES CDM</div>
+      <div class="subtitle" id="subtitle">Pedidos em aberto</div>
+    </div>
+    <div>
+      <div class="clock" id="clock"></div>
+      <div class="mode-buttons">
+        <button class="btn btn-dark" onclick="showOrders()">POs em aberto</button>
+        <button class="btn btn-dark" onclick="showAllCuts()">Todos os cortes</button>
+        <button class="btn btn-dark" onclick="showClosedOrders()">Pedidos encerrados</button>
+        <button class="btn btn-blue" onclick="loadAll(true)">Atualizar</button>
+      </div>
+    </div>
+  </div>
+
+  <section id="ordersScreen" class="orders-screen">
+    <div class="section-title"><span>Pedidos com cortes em aberto</span><span id="ordersSummary"></span></div>
+    <div id="ordersGrid" class="orders-grid"></div>
+    <div id="ordersEmpty" class="empty hidden">SEM PEDIDOS EM ABERTO</div>
+  </section>
+
+  <section id="listScreen" class="list-screen hidden">
+    <section class="filters">
+      <div class="field"><label>Pedido</label><select id="filterOrder" onchange="applyGlobalFilters()"><option value="">Todos</option></select></div>
+      <div class="field"><label>Cor</label><select id="filterColor" onchange="applyGlobalFilters()"><option value="">Todas</option><option value="black">Black</option><option value="grey">Grey</option></select></div>
+      <div class="field"><label>Espessura</label><select id="filterThickness" onchange="applyGlobalFilters()"><option value="">Todas</option></select></div>
+      <div class="field"><label>Data entrada</label><input id="filterDate" type="date" onchange="applyGlobalFilters()"></div>
+      <div class="field"><label>Ordenar por</label><select id="sortBy" onchange="applyGlobalFilters()"><option value="number">Número item</option><option value="order">Pedido</option><option value="date">Data entrada</option><option value="color">Cor</option><option value="thickness">Espessura</option><option value="measure">Medida</option><option value="qty">Quantidade</option></select></div>
+      <button class="btn btn-dark" onclick="clearGlobalFilters()">Limpar</button>
+    </section>
+    <div class="summary"><div id="summaryText">0 cortes em aberto</div><div id="summaryPieces">0 peças</div></div>
+    <div id="cutsList" class="list"></div>
+    <div id="listEmpty" class="empty hidden">SEM CORTES EM ABERTO</div>
+  </section>
+
+  <section id="poScreen" class="po-screen hidden">
+    <div class="po-top">
+      <div><div class="selected-order" id="selectedOrder">SHC000000</div><div class="selected-info" id="selectedInfo">PO 0000000000</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-dark" onclick="showOrders()">← Voltar às POs</button>
+        <button class="btn btn-dark" onclick="showAllCuts()">Ver todos os cortes</button>
+      </div>
+    </div>
+    <section class="filters po-filters">
+      <div class="field"><label>Cor</label><select id="poFilterColor" onchange="applyPoFilters()"><option value="">Todas</option><option value="black">Black</option><option value="grey">Grey</option></select></div>
+      <div class="field"><label>Espessura</label><select id="poFilterThickness" onchange="applyPoFilters()"><option value="">Todas</option></select></div>
+      <div class="field"><label>Data entrada</label><input id="poFilterDate" type="date" onchange="applyPoFilters()"></div>
+      <div class="field"><label>Ordenar por</label><select id="poSortBy" onchange="applyPoFilters()"><option value="number">Número item</option><option value="date">Data entrada</option><option value="color">Cor</option><option value="thickness">Espessura</option><option value="measure">Medida</option><option value="qty">Quantidade</option></select></div>
+      <div class="field"><label>Direção</label><select id="poSortDirection" onchange="applyPoFilters()"><option value="asc">Crescente</option><option value="desc">Decrescente</option></select></div>
+      <button class="btn btn-dark" onclick="clearPoFilters()">Limpar</button>
+    </section>
+    <div class="summary"><div id="poSummaryText">0 cortes nesta PO</div><div id="poSummaryPieces">0 peças</div></div>
+    <div id="poCutsList" class="list"></div>
+    <div id="poEmpty" class="empty hidden">SEM CORTES PENDENTES NESTE PEDIDO</div>
+  </section>
+
+  <section id="closedScreen" class="closed-screen hidden">
+    <section class="filters closed-filters">
+      <div class="field"><label>Filtrar por Ordem</label><input id="closedFilterOrder" type="text" oninput="renderClosedOrders()" placeholder="SHC..."></div>
+      <div class="field"><label>Filtrar por PO</label><input id="closedFilterPO" type="text" oninput="renderClosedOrders()" placeholder="4500..."></div>
+      <div class="field"><label>Data entrada</label><input id="closedFilterDate" type="date" onchange="renderClosedOrders()"></div>
+      <button class="btn btn-dark" onclick="clearClosedFilters()">Limpar</button>
+    </section>
+    <div class="section-title"><span>Pedidos encerrados</span><span id="closedSummary"></span></div>
+    <div id="closedGrid" class="orders-grid"></div>
+    <div id="closedEmpty" class="empty hidden">SEM PEDIDOS ENCERRADOS</div>
+  </section>
+
+  <section id="closedDetailScreen" class="closed-detail-screen hidden">
+    <div class="po-top">
+      <div><div class="selected-order" id="closedSelectedOrder">SHC000000</div><div class="selected-info" id="closedSelectedInfo">PO 0000000000</div></div>
+      <button class="btn btn-dark" onclick="showClosedOrders()">← Voltar aos encerrados</button>
+    </div>
+    <div id="closedItemsList" class="list"></div>
+    <div id="closedItemsEmpty" class="empty hidden">SEM ITENS NESTE PEDIDO</div>
+  </section>
+</div>
+
+<div id="errorBox" class="error"></div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbx6O29a_NJC7s79krRhpivH745asbKCewJsa0r8-a8SQ3YWeWT8tCBHixAXjUfJiUci/exec";
+
+let allItems = [];
+let orders = [];
+let closedOrders = [];
+let selectedOrder = "";
+
+async function apiPost(payload) {
+  const res = await fetch(API_URL, { method: "POST", body: JSON.stringify(payload) });
+  const raw = await res.text();
+  try { return JSON.parse(raw); }
+  catch (e) { throw new Error("Server response was not valid JSON."); }
+}
+
+function escapeHtml(text) {
+  return String(text || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+function showError(text) {
+  const box = document.getElementById("errorBox");
+  if (!text) { box.style.display = "none"; box.textContent = ""; return; }
+  box.style.display = "block"; box.textContent = text;
+}
+
+function updateClock() { document.getElementById("clock").textContent = new Date().toLocaleString("pt-PT"); }
+
+function formatDate(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (isNaN(d)) return String(value || "");
+  return String(d.getDate()).padStart(2,"0") + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + d.getFullYear();
+}
+
+function dateKey(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (isNaN(d)) return "";
+  return d.toISOString().slice(0,10);
+}
+
+function normalizeColor(value) {
+  const s = String(value || "").toLowerCase();
+  return s.includes("grey") || s.includes("gray") ? "grey" : "black";
+}
+
+function itemNumber(item) { return Number(String(item.ItemCliente || "").replace(/\D/g,"")) || 999999; }
+function countPieces(items) { return items.reduce((sum,item) => sum + Number(item.Quantidade || 0), 0); }
+
+function groupOrders(items) {
+  const map = {};
+  items.forEach(item => {
+    const key = item.OrdemCorte || "SEM_ORDEM";
+    if (!map[key]) map[key] = { OrdemCorte:item.OrdemCorte || "", NumeroPO:item.NumeroPO || "", count:0, pieces:0, items:[], created:item.CriadoEm || "" };
+    map[key].count += 1;
+    map[key].pieces += Number(item.Quantidade || 0);
+    map[key].items.push(item);
+  });
+  return Object.values(map).sort((a,b) => String(a.OrdemCorte).localeCompare(String(b.OrdemCorte)));
+}
+
+async function loadAll(showErrors=false) {
+  try {
+    const openData = await apiPost({ action:"getFilaCorteCdm" });
+    if (!openData.ok) throw new Error(openData.message || "Error loading open cuts.");
+    allItems = openData.items || [];
+    orders = groupOrders(allItems);
+
+    const closedData = await apiPost({ action:"getPedidosCorteCdmEncerrados", limit:500 });
+    if (closedData.ok) closedOrders = closedData.items || [];
+
+    populateGlobalFilters();
+
+    const mode = getCurrentMode();
+    if (mode === "closed") renderClosedOrders();
+    else if (mode === "po" && selectedOrder && orderStillExists(selectedOrder)) { populatePoFilters(); applyPoFilters(); }
+    else if (mode === "list") applyGlobalFilters();
+    else showOrders();
+
+    showError("");
+  } catch (error) {
+    if (showErrors) showError("Erro ao carregar dados: " + error.message);
+  }
+}
+
+function getCurrentMode() {
+  if (!document.getElementById("poScreen").classList.contains("hidden")) return "po";
+  if (!document.getElementById("listScreen").classList.contains("hidden")) return "list";
+  if (!document.getElementById("closedScreen").classList.contains("hidden")) return "closed";
+  if (!document.getElementById("closedDetailScreen").classList.contains("hidden")) return "closedDetail";
+  return "orders";
+}
+
+function showOnly(id) {
+  ["ordersScreen","listScreen","poScreen","closedScreen","closedDetailScreen"].forEach(screenId => document.getElementById(screenId).classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+}
+
+function showOrders() { selectedOrder = ""; document.getElementById("subtitle").textContent = "Pedidos em aberto"; showOnly("ordersScreen"); renderOrders(); }
+function showAllCuts() { selectedOrder = ""; document.getElementById("subtitle").textContent = "Visão geral filtrável"; showOnly("listScreen"); applyGlobalFilters(); }
+function showClosedOrders() { selectedOrder = ""; document.getElementById("subtitle").textContent = "Pedidos encerrados"; showOnly("closedScreen"); renderClosedOrders(); }
+function openOrder(ordem) { selectedOrder = ordem; document.getElementById("subtitle").textContent = "Cortes da PO selecionada"; showOnly("poScreen"); populatePoFilters(); applyPoFilters(); }
+function orderStillExists(ordem) { return orders.some(order => order.OrdemCorte === ordem); }
+
+function renderOrders() {
+  const grid = document.getElementById("ordersGrid");
+  const empty = document.getElementById("ordersEmpty");
+  grid.innerHTML = "";
+  const totalPieces = orders.reduce((sum, order) => sum + Number(order.pieces || 0), 0);
+  document.getElementById("ordersSummary").textContent = orders.length + " POs • " + totalPieces + " peças";
+  if (!orders.length) { empty.classList.remove("hidden"); grid.classList.add("hidden"); return; }
+  empty.classList.add("hidden"); grid.classList.remove("hidden");
+
+  orders.forEach(order => {
+    const card = document.createElement("div");
+    card.className = "order-card";
+    card.onclick = () => openOrder(order.OrdemCorte);
+    card.innerHTML = `<div class="order-number">${escapeHtml(order.OrdemCorte)}</div><div class="order-po">PO ${escapeHtml(order.NumeroPO)}</div><div class="order-meta">${escapeHtml(order.count)} cortes • ${escapeHtml(order.pieces)} peças</div><div class="order-small">Clique para abrir esta PO</div>`;
+    grid.appendChild(card);
+  });
+}
+
+function populateGlobalFilters() {
+  const orderSelect = document.getElementById("filterOrder");
+  const thicknessSelect = document.getElementById("filterThickness");
+  const currentOrder = orderSelect.value;
+  const currentThickness = thicknessSelect.value;
+
+  const orderValues = [...new Set(allItems.map(item => item.OrdemCorte).filter(Boolean))].sort();
+  orderSelect.innerHTML = '<option value="">Todos</option>' + orderValues.map(order => `<option value="${escapeHtml(order)}">${escapeHtml(order)}</option>`).join("");
+  orderSelect.value = orderValues.includes(currentOrder) ? currentOrder : "";
+
+  const thicknessValues = [...new Set(allItems.map(item => String(item.Espessura || "")).filter(Boolean))].sort((a,b) => Number(a)-Number(b));
+  thicknessSelect.innerHTML = '<option value="">Todas</option>' + thicknessValues.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)} mm</option>`).join("");
+  thicknessSelect.value = thicknessValues.includes(currentThickness) ? currentThickness : "";
+}
+
+function clearGlobalFilters() {
+  document.getElementById("filterOrder").value = "";
+  document.getElementById("filterColor").value = "";
+  document.getElementById("filterThickness").value = "";
+  document.getElementById("filterDate").value = "";
+  document.getElementById("sortBy").value = "number";
+  applyGlobalFilters();
+}
+
+function applyGlobalFilters() {
+  const order = document.getElementById("filterOrder").value;
+  const color = document.getElementById("filterColor").value;
+  const thickness = document.getElementById("filterThickness").value;
+  const date = document.getElementById("filterDate").value;
+  const sortBy = document.getElementById("sortBy").value;
+
+  let items = allItems.filter(item => {
+    if (order && item.OrdemCorte !== order) return false;
+    if (color && normalizeColor(item.Cor) !== color) return false;
+    if (thickness && String(item.Espessura) !== String(thickness)) return false;
+    if (date && dateKey(item.CriadoEm) !== date) return false;
+    return true;
+  });
+
+  items = sortItems(items, sortBy);
+  document.getElementById("summaryText").textContent = items.length + " cortes em aberto";
+  document.getElementById("summaryPieces").textContent = countPieces(items) + " peças";
+  renderRows(items, "cutsList", "listEmpty", false);
+}
+
+function getSelectedPoItems() { return allItems.filter(item => item.OrdemCorte === selectedOrder); }
+
+function populatePoFilters() {
+  const thicknessSelect = document.getElementById("poFilterThickness");
+  const currentThickness = thicknessSelect.value;
+  const items = getSelectedPoItems();
+  const thicknessValues = [...new Set(items.map(item => String(item.Espessura || "")).filter(Boolean))].sort((a,b) => Number(a)-Number(b));
+  thicknessSelect.innerHTML = '<option value="">Todas</option>' + thicknessValues.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)} mm</option>`).join("");
+  thicknessSelect.value = thicknessValues.includes(currentThickness) ? currentThickness : "";
+}
+
+function clearPoFilters() {
+  document.getElementById("poFilterColor").value = "";
+  document.getElementById("poFilterThickness").value = "";
+  document.getElementById("poFilterDate").value = "";
+  document.getElementById("poSortBy").value = "number";
+  document.getElementById("poSortDirection").value = "asc";
+  applyPoFilters();
+}
+
+function applyPoFilters() {
+  const color = document.getElementById("poFilterColor").value;
+  const thickness = document.getElementById("poFilterThickness").value;
+  const date = document.getElementById("poFilterDate").value;
+  const sortBy = document.getElementById("poSortBy").value;
+  const direction = document.getElementById("poSortDirection").value;
+
+  let items = getSelectedPoItems();
+  items = items.filter(item => {
+    if (color && normalizeColor(item.Cor) !== color) return false;
+    if (thickness && String(item.Espessura) !== String(thickness)) return false;
+    if (date && dateKey(item.CriadoEm) !== date) return false;
+    return true;
+  });
+  items = sortItems(items, sortBy, direction);
+
+  const order = orders.find(o => o.OrdemCorte === selectedOrder);
+  document.getElementById("selectedOrder").textContent = selectedOrder || "";
+  document.getElementById("selectedInfo").textContent = order ? "PO " + order.NumeroPO + " • " + items.length + " cortes filtrados" : "";
+  document.getElementById("poSummaryText").textContent = items.length + " cortes nesta PO";
+  document.getElementById("poSummaryPieces").textContent = countPieces(items) + " peças";
+  renderRows(items, "poCutsList", "poEmpty", false);
+}
+
+function clearClosedFilters() {
+  document.getElementById("closedFilterOrder").value = "";
+  document.getElementById("closedFilterPO").value = "";
+  document.getElementById("closedFilterDate").value = "";
+  renderClosedOrders();
+}
+
+function renderClosedOrders() {
+  const grid = document.getElementById("closedGrid");
+  const empty = document.getElementById("closedEmpty");
+  const orderText = String(document.getElementById("closedFilterOrder").value || "").toLowerCase();
+  const poText = String(document.getElementById("closedFilterPO").value || "").toLowerCase();
+  const date = document.getElementById("closedFilterDate").value;
+
+  let items = closedOrders.filter(order => {
+    if (orderText && !String(order.OrdemCorte || "").toLowerCase().includes(orderText)) return false;
+    if (poText && !String(order.NumeroPO || "").toLowerCase().includes(poText)) return false;
+    if (date && dateKey(order.CriadoEm) !== date) return false;
+    return true;
+  });
+
+  grid.innerHTML = "";
+  document.getElementById("closedSummary").textContent = items.length + " pedidos";
+
+  if (!items.length) { empty.classList.remove("hidden"); grid.classList.add("hidden"); return; }
+  empty.classList.add("hidden"); grid.classList.remove("hidden");
+
+  items.forEach(order => {
+    const card = document.createElement("div");
+    card.className = "order-card";
+    card.onclick = () => openClosedOrder(order);
+    card.innerHTML = `<div class="order-number">${escapeHtml(order.OrdemCorte)}</div><div class="order-po">PO ${escapeHtml(order.NumeroPO)}</div><div class="order-meta">${escapeHtml(order.TotalItens)} cortes • ${escapeHtml(order.TotalPecas)} peças</div><div class="order-small">Entrada: ${escapeHtml(formatDate(order.CriadoEm))}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+async function openClosedOrder(order) {
+  try {
+    document.getElementById("subtitle").textContent = "Pedido encerrado";
+    showOnly("closedDetailScreen");
+    document.getElementById("closedSelectedOrder").textContent = order.OrdemCorte || "";
+    document.getElementById("closedSelectedInfo").textContent = "PO " + (order.NumeroPO || "") + " • pedido encerrado";
+
+    const data = await apiPost({ action:"getItensCorteCdmPorPedido", ordemCorte:order.OrdemCorte, numeroPO:order.NumeroPO, includeClosed:true });
+    if (!data.ok) throw new Error(data.message || "Erro ao carregar itens encerrados.");
+
+    renderRows(sortItems(data.items || [], "number"), "closedItemsList", "closedItemsEmpty", true);
+  } catch (error) {
+    showError("Erro ao abrir pedido encerrado: " + error.message);
+  }
+}
+
+function sortItems(items, sortBy, direction) {
+  const copy = [...items];
+  const dir = direction === "desc" ? -1 : 1;
+
+  copy.sort((a,b) => {
+    let result = 0;
+
+    if (sortBy === "date") {
+      result = String(a.CriadoEm || "").localeCompare(String(b.CriadoEm || "")) ||
+               String(a.OrdemCorte || "").localeCompare(String(b.OrdemCorte || "")) ||
+               itemNumber(a) - itemNumber(b);
+    } else if (sortBy === "order") {
+      result = String(a.OrdemCorte || "").localeCompare(String(b.OrdemCorte || "")) ||
+               itemNumber(a) - itemNumber(b);
+    } else if (sortBy === "color") {
+      result = normalizeColor(a.Cor).localeCompare(normalizeColor(b.Cor)) ||
+               Number(a.Espessura || 0) - Number(b.Espessura || 0) ||
+               itemNumber(a) - itemNumber(b);
+    } else if (sortBy === "thickness") {
+      result = Number(a.Espessura || 0) - Number(b.Espessura || 0) ||
+               itemNumber(a) - itemNumber(b);
+    } else if (sortBy === "measure") {
+      result = Number(a.Largura || 0) - Number(b.Largura || 0) ||
+               Number(a.Comprimento || 0) - Number(b.Comprimento || 0) ||
+               itemNumber(a) - itemNumber(b);
+    } else if (sortBy === "qty") {
+      result = Number(a.Quantidade || 0) - Number(b.Quantidade || 0) ||
+               itemNumber(a) - itemNumber(b);
+    } else {
+      // number / item
+      result = itemNumber(a) - itemNumber(b) ||
+               Number(a.Ordem || 0) - Number(b.Ordem || 0);
+    }
+
+    return result * dir;
+  });
+
+  return copy;
+}
+
+function renderRows(items, listId, emptyId, readonly) {
+  const list = document.getElementById(listId);
+  const empty = document.getElementById(emptyId);
+  list.innerHTML = "";
+
+  if (!items.length) { empty.classList.remove("hidden"); list.classList.add("hidden"); return; }
+  empty.classList.add("hidden"); list.classList.remove("hidden");
+
+  items.forEach(item => {
+    const color = normalizeColor(item.Cor);
+    const itemJson = encodeURIComponent(JSON.stringify(item));
+    const buttons = readonly ? '<div class="status-done">CORTADO</div>' : `<button class="cut-label" onclick="printLabelFromEncoded('${itemJson}')">ETIQUETA</button><button class="cut-ok" onclick="confirmDone('${escapeHtml(item.IDItem)}')">OK</button>`;
+
+    const row = document.createElement("div");
+    row.className = "cut-row " + color;
+    row.innerHTML = `<div class="cut-item">${escapeHtml(item.ItemCliente || "-")}</div><div class="cut-order">${escapeHtml(item.OrdemCorte)}<br><span class="cut-small">PO ${escapeHtml(item.NumeroPO)}</span></div><div class="cut-material">CDM ${escapeHtml(String(item.Cor || "").toUpperCase())}</div><div class="cut-thickness">${escapeHtml(item.Espessura)} mm</div><div class="cut-measure">${escapeHtml(item.Largura)} x ${escapeHtml(item.Comprimento)}</div><div class="cut-qty">QTD ${escapeHtml(item.Quantidade)}</div><div class="cut-date">${escapeHtml(formatDate(item.CriadoEm))}</div><div class="cut-buttons">${buttons}</div>`;
+    list.appendChild(row);
+  });
+}
+
+function printLabelFromEncoded(encoded) {
+  const item = JSON.parse(decodeURIComponent(encoded));
+  printLabel(item);
+}
+
+function todayLabel() {
+  const d = new Date();
+  return String(d.getDate()).padStart(2,"0") + "/" + String(d.getMonth()+1).padStart(2,"0") + "/" + d.getFullYear();
+}
+
+function printLabel(item) {
+  const color = normalizeColor(item.Cor);
+  const codigoCliente = String(item.CodigoCliente || "").trim().toUpperCase();
+  const baseCode = color === "black" ? "68910" : "68940";
+
+  // Regra:
+  // - CodigoCliente começa com ZU: imprime ZU.
+  // - CodigoCliente existe sem ZU: imprime sem ZU.
+  // - CodigoCliente vazio: pedido antigo sem esse campo, mantém comportamento antigo com ZU.
+  const hasZU = codigoCliente ? codigoCliente.startsWith("ZU") : true;
+  const cdmText = hasZU ? ("ZU" + baseCode) : baseCode;
+
+  const date = todayLabel();
+  const ordem = String(item.OrdemCorte || "").replace(/^SHC/,"");
+  const itemCliente = String(item.ItemCliente || item.Ordem || "").trim();
+  const materialName = color === "grey" ? "GREY" : "BLACK";
+  const materialBg = color === "grey" ? "#D9D9D9" : "#000000";
+  const materialFg = color === "grey" ? "#000000" : "#FFFFFF";
+  const thickness = String(item.Espessura || "");
+  const comp = String(item.Comprimento || "");
+  const larg = String(item.Largura || "");
+  const qtd = String(item.Quantidade || "");
+  const dimText = comp + " x " + larg;
+
+  function escSvg(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  let svgLabel = `<svg
+   width="62mm"
+   height="62mm"
+   viewBox="0 0 620 620"
+   version="1.1"
+   id="svg27"
+   sodipodi:docname="etiqueta_CDM.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview27"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="4.835047"
+     inkscape:cx="78.075766"
+     inkscape:cy="132.26345"
+     inkscape:window-width="2560"
+     inkscape:window-height="1351"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g27" />
+  <defs
+     id="defs1">
+    <marker
+       id="arrow-dim"
+       markerWidth="8"
+       markerHeight="8"
+       refX="4"
+       refY="4"
+       orient="auto-start-reverse">
+      <path
+         d="M0,0 L8,4 L0,8 Z"
+         fill="#000"
+         id="path1" />
+    </marker>
+    <style
+       id="style1">
+      .label { font-family: Arial, Helvetica, sans-serif; }
+      .small { font-size: 23px; font-weight: 900; }
+      .topValue { font-size: 62px; font-weight: 900; }
+      .code { font-size: 82px; font-weight: 900; fill: #fff; }
+      .cdm { font-size: 37px; font-weight: 900; fill: #fff; }
+      .material { font-size: 63px; font-weight: 900; fill: #fff; }
+      .thickness { font-size: 70px; font-weight: 900; }
+      .unit { font-size: 36px; font-weight: 900; }
+      .dimTitle { font-size: 22px; font-weight: 900; }
+      .dimValue { font-size: 62px; font-weight: 900; }
+      .qty { font-size: 56px; font-weight: 900; }
+      .pcs { font-size: 24px; font-weight: 900; }
+      .date { font-size: 42px; font-weight: 900; }
+      .dimText { font-size: 22px; font-weight: 900; }
+    </style>
+    <marker
+       id="arrow-dim-7"
+       markerWidth="8"
+       markerHeight="8"
+       refX="4"
+       refY="4"
+       orient="auto-start-reverse">
+      <path
+         d="M 0,0 8,4 0,8 Z"
+         fill="#000000"
+         id="path1-1" />
+    </marker>
+    <marker
+       id="marker2"
+       markerWidth="8"
+       markerHeight="8"
+       refX="4"
+       refY="4"
+       orient="auto-start-reverse">
+      <path
+         d="M 0,0 8,4 0,8 Z"
+         fill="#000000"
+         id="path2" />
+    </marker>
+  </defs>
+  <g
+     class="label"
+     id="g27">
+    <!-- Outer frame -->
+    <rect
+       x="9"
+       y="9"
+       width="602"
+       height="602"
+       rx="11"
+       ry="11"
+       fill="#fff"
+       stroke="#000"
+       stroke-width="3.5"
+       id="rect1" />
+    <!-- Row separators -->
+    <line
+       x1="9"
+       y1="114"
+       x2="611"
+       y2="114"
+       stroke="#000"
+       stroke-width="3.5"
+       id="line1" />
+    <line
+       x1="9"
+       y1="239"
+       x2="611"
+       y2="239"
+       stroke="#000"
+       stroke-width="3.5"
+       id="line2" />
+    <line
+       x1="9"
+       y1="349"
+       x2="611"
+       y2="349"
+       stroke="#000"
+       stroke-width="3.5"
+       id="line3" />
+    <line
+       x1="7.3583407"
+       y1="515.35834"
+       x2="609.35834"
+       y2="515.35834"
+       stroke="#000000"
+       stroke-width="3.5"
+       id="line4" />
+    <!-- Top columns -->
+    <line
+       x1="310"
+       y1="9"
+       x2="310"
+       y2="114"
+       stroke="#000"
+       stroke-width="3.5"
+       id="line5" />
+    <text
+       x="26"
+       y="43"
+       class="small"
+       id="text5">ORDER</text>
+    <text
+       x="26"
+       y="99"
+       class="topValue"
+       id="text6">008336</text>
+    <text
+       x="327"
+       y="43"
+       class="small"
+       id="text7">ITEM</text>
+    <text
+       x="327"
+       y="99"
+       class="topValue"
+       id="text8">00010</text>
+    <!-- Code row -->
+    <rect
+       x="18"
+       y="124"
+       width="86"
+       height="105"
+       fill="#000"
+       id="rect8" />
+    <text
+       x="68.713501"
+       y="167.83766"
+       text-anchor="middle"
+       class="cdm"
+       id="text9"
+       transform="scale(0.8841568,1.1310211)"
+       style="stroke-width:0.281604">CDM</text>
+    <rect
+       x="112"
+       y="124"
+       width="487"
+       height="105"
+       rx="10"
+       ry="10"
+       fill="#000"
+       stroke="#000"
+       stroke-width="2.6"
+       stroke-dasharray="7 5"
+       id="rect9" />
+    <text
+       x="356"
+       y="206"
+       text-anchor="middle"
+       class="code"
+       id="text10">ZU68910</text>
+    <!-- Material row -->
+    <rect
+       x="9"
+       y="239"
+       width="338"
+       height="110"
+       fill="#000"
+       id="rect10" />
+    <line
+       x1="347"
+       y1="239"
+       x2="347"
+       y2="349"
+       stroke="#000"
+       stroke-width="3.5"
+       id="line10" />
+    <text
+       x="25"
+       y="272"
+       class="small"
+       fill="#fff"
+       id="text11">MATERIAL</text>
+    <text
+       x="25"
+       y="333"
+       class="material"
+       id="text12">BLACK</text>
+    <text
+       x="396.73874"
+       y="265.43335"
+       class="small"
+       id="text13">THICKNESS</text>
+    <text
+       x="365"
+       y="333"
+       class="thickness"
+       id="text14">10 <tspan
+   class="unit"
+   id="tspan13">mm</tspan></text>
+    <!-- Dimensions row -->
+    <line
+       x1="310.5278"
+       y1="348.45279"
+       x2="310.5278"
+       y2="516.45276"
+       stroke="#000000"
+       stroke-width="3.5"
+       id="line14" />
+    <text
+       x="44.152691"
+       y="382"
+       class="dimTitle"
+       id="text15">DIMENSIONS (mm)</text>
+    <text
+       x="25"
+       y="462"
+       class="dimValue"
+       id="text16"
+       style="font-weight:900;font-size:62px"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:900;font-stretch:normal;font-size:49.3889px;font-family:Arial, Helvetica, sans-serif;-inkscape-font-specification:'Arial, Helvetica, sans-serif, Heavy';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal"
+         id="tspan27">420 x 220</tspan></text>
+    <!-- Technical drawing -->
+    <g
+       transform="matrix(1.55,0,0,1.55,343.96381,350.69725)"
+       id="g23">
+      <polygon
+         points="24,24 100,24 121,15 45,15 "
+         fill="#f2f2f2"
+         stroke="#000000"
+         stroke-width="2"
+         id="polygon16"
+         transform="matrix(1.2765462,0,0,0.950184,-29.581815,0.79488954)" />
+      <polygon
+         points="121,15 121,38 100,47 100,24 "
+         fill="#dddddd"
+         stroke="#000000"
+         stroke-width="2"
+         id="polygon17"
+         transform="matrix(1.1692851,0,0,0.9829883,-17.003183,0.34013217)" />
+      <polygon
+         points="24,47 24,24 100,24 100,47 "
+         fill="#e9e9e9"
+         stroke="#000000"
+         stroke-width="2"
+         id="polygon18"
+         transform="matrix(1.2935809,0,0,1.0071233,-29.499456,-0.47353204)" />
+      <line
+         x1="1.4051187"
+         y1="48.646954"
+         x2="1.4051187"
+         y2="70.646957"
+         stroke="#000000"
+         stroke-width="1.5"
+         id="line19" />
+      <line
+         x1="100"
+         y1="49"
+         x2="100"
+         y2="71"
+         stroke="#000000"
+         stroke-width="1.5"
+         id="line20" />
+      <line
+         x1="125.63697"
+         y1="39.9758"
+         x2="125.63697"
+         y2="61.9758"
+         stroke="#000000"
+         stroke-width="1.5"
+         id="line20-5" />
+      <text
+         x="51.408649"
+         y="88.47229"
+         text-anchor="middle"
+         class="dimText"
+         id="text20">420</text>
+      <line
+         x1="122.5508"
+         y1="56.051987"
+         x2="103.53309"
+         y2="64.274101"
+         stroke="#000000"
+         stroke-width="0.87141"
+         marker-start="url(#arrow-dim)"
+         marker-end="url(#arrow-dim)"
+         id="line21"
+         inkscape:transform-center-x="-6.6720213"
+         inkscape:transform-center-y="-8.4858384" />
+      <line
+         x1="94.536369"
+         y1="66.58493"
+         x2="4.6016779"
+         y2="66.652245"
+         stroke="#000000"
+         stroke-width="0.819758"
+         marker-start="url(#arrow-dim-7)"
+         marker-end="url(#arrow-dim-7)"
+         id="line21-5"
+         inkscape:transform-center-x="-40.844712"
+         inkscape:transform-center-y="-1.0787618"
+         style="marker-start:url(#arrow-dim-7);marker-end:url(#arrow-dim-7)" />
+      <text
+         x="112.10942"
+         y="81.044571"
+         class="dimText"
+         id="text23"
+         inkscape:transform-center-x="-22.98323"
+         inkscape:transform-center-y="-70.59135">220</text>
+    </g>
+    <!-- Bottom row -->
+    <line
+       x1="310"
+       y1="517"
+       x2="310"
+       y2="611"
+       stroke="#000"
+       stroke-width="3.5"
+       id="line24" />
+    <text
+       x="98.233009"
+       y="541.24451"
+       class="small"
+       id="text24">QUANTITY</text>
+    <text
+       x="155"
+       y="599"
+       text-anchor="middle"
+       class="qty"
+       id="text25">250 <tspan
+   class="pcs"
+   id="tspan24">PCS</tspan></text>
+    <text
+       x="427.14124"
+       y="539.0556"
+       class="small"
+       id="text26">DATE</text>
+    <text
+       x="460"
+       y="596"
+       text-anchor="middle"
+       class="date"
+       id="text27">16/06/2026</text>
+  </g>
+</svg>`;
+
+  // Cor dinâmica da célula MATERIAL:
+  // BLACK = fundo preto / texto branco
+  // GREY = fundo cinza claro / texto preto
+  svgLabel = svgLabel
+    .replace(/(<rect[^>]+x="9"[^>]+y="239"[^>]+width="338"[^>]+height="110"[^>]+fill=")[^"]+("[^>]*>)/, "$1" + materialBg + "$2")
+    .replace(/(<text[^>]+x="25"[^>]+y="272"[^>]+class="small"[^>]+fill=")[^"]+("[^>]*>MATERIAL<\/text>)/, "$1" + materialFg + "$2")
+    .replace(/(<text[^>]+x="25"[^>]+y="333"[^>]+class="material"[^>]+fill=")[^"]+("[^>]*>)/, "$1" + materialFg + "$2")
+    .replace(/(\.material\s*\{[^}]*fill:\s*)#[0-9A-Fa-f]{3,6}([^}]*\})/, "$1" + materialFg + "$2");
+
+  // Substituições dos textos da etiqueta modelo
+  svgLabel = svgLabel
+    .replace(/008336/g, escSvg(ordem))
+    .replace(/00010/g, escSvg(itemCliente))
+    .replace(/ZU68910/g, escSvg(cdmText))
+    .replace(/68910/g, escSvg(cdmText))
+    .replace(/BLACK/g, escSvg(materialName))
+    .replace(/GREY/g, escSvg(materialName))
+    .replace(/>10\s*</g, ">" + escSvg(thickness) + "<")
+    .replace(/>10\s*<tspan/g, ">" + escSvg(thickness) + " <tspan")
+    .replace(/42 x 20/g, escSvg(dimText))
+    .replace(/420 x 220/g, escSvg(dimText))
+    .replace(/401 x 521/g, escSvg(dimText))
+    .replace(/>42</g, ">" + escSvg(comp) + "<")
+    .replace(/>420</g, ">" + escSvg(comp) + "<")
+    .replace(/>401</g, ">" + escSvg(comp) + "<")
+    .replace(/>20</g, ">" + escSvg(larg) + "<")
+    .replace(/>220</g, ">" + escSvg(larg) + "<")
+    .replace(/>521</g, ">" + escSvg(larg) + "<")
+    .replace(/>250\s*</g, ">" + escSvg(qtd) + "<")
+    .replace(/250\s*<tspan/g, escSvg(qtd) + " <tspan")
+    .replace(/16\/06\/2026/g, escSvg(date));
+
+  const labelHtml = `<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Etiqueta CDM SVG</title>
+<style>
+@page{size:62mm 62mm;margin:0}
+*{
+  box-sizing:border-box;
+  -webkit-print-color-adjust:exact!important;
+  print-color-adjust:exact!important;
+}
+html,body{
+  margin:0!important;
+  padding:0!important;
+  width:62mm!important;
+  height:62mm!important;
+  overflow:hidden!important;
+  background:white!important;
+}
+.label-svg-page{
+  width:62mm!important;
+  height:62mm!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+.label-svg-page svg{
+  width:62mm!important;
+  height:62mm!important;
+  display:block!important;
+}
+@media print{
+  @page{size:62mm 62mm;margin:0}
+  html,body{
+    width:62mm!important;
+    height:62mm!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+  }
+  .label-svg-page{
+    width:62mm!important;
+    height:62mm!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="label-svg-page">
+${svgLabel}
+</div>
+<script>window.onload=function(){setTimeout(function(){window.print();},250)}<\/script>
+</body>
+</html>`;
+
+  const w = window.open("", "_blank", "width=700,height=700");
+  if (!w) { alert("O navegador bloqueou a janela de impressão. Permita pop-ups para este site."); return; }
+  w.document.open();
+  w.document.write(labelHtml);
+  w.document.close();
+}
+
+async function confirmDone(idItem) {
+  const item = allItems.find(i => i.IDItem === idItem);
+  if (!item) return;
+
+  const ok = confirm("Confirmar corte?\n\nItem: " + (item.ItemCliente || "-") + "\n" + item.OrdemCorte + "\n" + String(item.Cor || "").toUpperCase() + " " + item.Espessura + " mm\n" + item.Largura + " x " + item.Comprimento + "\nQtd " + item.Quantidade);
+  if (!ok) return;
+
+  try {
+    const data = await apiPost({ action:"marcarItemCdmCortado", idItem:idItem, userEmail:"Operador Serra" });
+    if (!data.ok) throw new Error(data.message || "Error confirming cut.");
+
+    allItems = allItems.filter(i => i.IDItem !== idItem);
+    orders = groupOrders(allItems);
+
+    const mode = getCurrentMode();
+    if (mode === "po") {
+      if (selectedOrder && orderStillExists(selectedOrder)) { populatePoFilters(); applyPoFilters(); }
+      else showOrders();
+    } else if (mode === "list") applyGlobalFilters();
+    else showOrders();
+
+    setTimeout(() => loadAll(false), 500);
+  } catch (error) {
+    showError("Erro ao confirmar corte: " + error.message);
+  }
+}
+
+function orderStillExists(ordem) { return orders.some(order => order.OrdemCorte === ordem); }
+
+function start() {
+  updateClock();
+  loadAll(true);
+  setInterval(updateClock, 1000);
+  setInterval(() => loadAll(false), 15000);
+}
+
+window.addEventListener("load", start);
+</script>
+</body>
+</html>
