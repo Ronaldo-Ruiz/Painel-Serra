@@ -145,7 +145,7 @@ body{overflow:hidden}
 <div id="errorBox" class="error"></div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbzWoBnG4GCacX9XjPzQdDcdpjrO8gOeVYcOQWpuGGzAlcD-FcdN2w40sabfCexR4o_j/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxEa-6zU_6wbEdsmM47T-MQFz6VgIogMrZkdlFmhIjlK_g4G_-EVuO5XyTj2EsQXwWP/exec";
 
 let allItems = [];
 let orders = [];
@@ -482,12 +482,10 @@ function printLabel(item) {
   const codigoCliente = String(item.CodigoCliente || "").trim().toUpperCase();
   const baseCode = color === "black" ? "68910" : "68940";
 
-  // Regra:
-  // - CodigoCliente começa com ZU: imprime ZU.
-  // - CodigoCliente existe sem ZU: imprime sem ZU.
-  // - CodigoCliente vazio: pedido antigo sem esse campo, mantém comportamento antigo com ZU.
-  const hasZU = codigoCliente ? codigoCliente.startsWith("ZU") : true;
-  const cdmText = hasZU ? ("ZU" + baseCode) : baseCode;
+  // Usa exatamente o CodigoCliente quando existir.
+  // Ex.: ZU68910, 68910, ZU68940 ou 68940.
+  // Se vier vazio, usa o código base pela cor.
+  const cdmText = codigoCliente || baseCode;
 
   const date = todayLabel();
   const ordem = String(item.OrdemCorte || "").replace(/^SHC/,"");
@@ -929,18 +927,19 @@ function printLabel(item) {
   }
 
   // Substituições dos textos da etiqueta modelo
+  // Importante: o SVG base pode conter ZU68910.
+  // Por isso primeiro trocamos códigos completos por um marcador,
+  // para nunca gerar ZUZU68910.
   svgLabel = svgLabel
+    .replace(/ZU68910|ZU68940|68910|68940/g, "__CDM_CODE__")
     .replace(/008336/g, escSvg(ordem))
     .replace(/00010/g, escSvg(itemCliente))
-    .replace(/ZU68910/g, escSvg(cdmText))
-    .replace(/68910/g, escSvg(cdmText))
+    .replace(/__CDM_CODE__/g, escSvg(cdmText))
     .replace(/BLACK/g, escSvg(materialName))
     .replace(/GREY/g, escSvg(materialName))
     .replace(/>10\s*</g, ">" + escSvg(thickness) + "<")
     .replace(/>10\s*<tspan/g, ">" + escSvg(thickness) + " <tspan")
-    .replace(/42 x 20/g, escSvg(dimText))
-    .replace(/420 x 220/g, escSvg(dimText))
-    .replace(/401 x 521/g, escSvg(dimText))
+    .replace(/42 x 20|420 x 220|401 x 521/g, escSvg(dimText))
     .replace(/>42</g, ">" + escSvg(comp) + "<")
     .replace(/>420</g, ">" + escSvg(comp) + "<")
     .replace(/>401</g, ">" + escSvg(comp) + "<")
